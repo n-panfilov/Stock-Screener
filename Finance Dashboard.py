@@ -4,6 +4,7 @@ import pandas as pd
 import logging
 from datetime import datetime
 from random import choice
+import openpyxl
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -72,30 +73,44 @@ while infoType not in ['BS','IS','CFS','RATIOS']:
 temp = getattr(choice(list(Tickers.values())),choice(list(statement_map.values())))
 available_years = temp.columns.year.unique().tolist()
 year_range = False
-while True:
-    start_year = input("Enter start year or only year(earliest): ").strip()
-    try:
-        start_year = int(start_year)
-        if start_year in available_years:
+
+if infoType == "RATIOS":
+    while True:
+        start_year = input("Enter year: ").strip()
+        try:
+            start_year = int(start_year)
+            if start_year in available_years:
+                break
+            else:
+                print(f"Available years: {available_years}")
+        except ValueError:
+            start_year = input("Invalid or unavailable year, please try again:  ").strip()
+else:
+
+    while True:
+        start_year = input("Enter start year or only year(earliest): ").strip()
+        try:
+            start_year = int(start_year)
+            if start_year in available_years:
+                break
+            else:
+                print(f"Available years: {available_years}")
+        except ValueError:
+            start_year = input("Invalid or unavailable year, please try again:  ").strip()
+    while True:
+        end_year = input("Enter end year or hit enter to leave a single year(closest to present): ").strip()
+        if end_year =='':
+            year_range = False
             break
-        else:
-            print(f"Available years: {available_years}")
-    except ValueError:
-        start_year = input("Invalid or unavailable year, please try again:  ").strip()
-while True:
-    end_year = input("Enter end year or hit enter to leave a single year(closest to present): ").strip()
-    if end_year =='':
-        year_range = False
-        break
-    try:
-        end_year = int(end_year)
-        if end_year in available_years:
-            year_range = True
-            break
-        else:
-            print(f"Available years: {available_years}")
-    except ValueError:
-        end_year = input("Invalid or unavailable year, please try again:  ").strip()
+        try:
+            end_year = int(end_year)
+            if end_year in available_years:
+                year_range = True
+                break
+            else:
+                print(f"Available years: {available_years}")
+        except ValueError:
+            end_year = input("Invalid or unavailable year, please try again:  ").strip()
 
 #endregion
 
@@ -143,87 +158,101 @@ for ticker,item in Tickers.items():
         income = income.loc[:, (income.columns.year >= start_year) & (income.columns.year <= end_year)]
         balance = balance.loc[:, (balance.columns.year >= start_year) & (balance.columns.year <= end_year)]
     else:
-            income = income.loc[:, income.columns.year == start_year]
-            balance = balance.loc[:, balance.columns.year == start_year]
-
+        income = income.loc[:, income.columns.year == start_year]
+        balance = balance.loc[:, balance.columns.year == start_year]
+    sector = item.info.get("sector")
+    is_financial = sector == "Financial Services"
     ratio_values = {}
     for ratio in want_ratios:
         if ratio == 'GM':
-            gross_profit = get_line_item(income,"Gross Profit","Gross Revenue","Gross Income","Total Gross Profit","Total Gross Income","Total Gross Revenue")
-            total_revenue = get_line_item(income, "Total Revenue" ,"Total Income" , "Total Profit")
-            if gross_profit is not None and total_revenue is not None:
-                ratio_values[ratio] = (gross_profit/total_revenue).iloc[0]
+            if is_financial:
+                ratio_values[ratio_display[ratio]] = "N/A"
             else:
-                ratio_values[ratio] = None
+                gross_profit = get_line_item(income,"Gross Profit","Gross Revenue","Gross Income","Total Gross Profit","Total Gross Income","Total Gross Revenue")
+                total_revenue = get_line_item(income, "Total Revenue" ,"Total Income" , "Total Profit")
+                if gross_profit is not None and total_revenue is not None:
+                    ratio_values[ratio_display[ratio]] = f"{(gross_profit/total_revenue).iloc[0] * 100:.2f}%"
+                else:
+                    ratio_values[ratio_display[ratio]] = None
         elif ratio == 'OM':
-            operating_income = get_line_item(income, "Operating Income","Operating Revenue")
-            total_revenue = get_line_item(income, "Total Revenue" ,"Total Income" , "Total Profit")
-            if operating_income is not None and total_revenue is not None:
-                ratio_values[ratio] = (operating_income/total_revenue).iloc[0]
+            if is_financial:
+                ratio_values[ratio_display[ratio]] = "N/A"
             else:
-                ratio_values[ratio] = None
+                operating_income = get_line_item(income, "Operating Income","Operating Revenue")
+                total_revenue = get_line_item(income, "Total Revenue" ,"Total Income" , "Total Profit")
+                if operating_income is not None and total_revenue is not None:
+                    ratio_values[ratio_display[ratio]] = f"{(operating_income/total_revenue).iloc[0] *100:.2f}%"
+                else:
+                    ratio_values[ratio_display[ratio]] = None
         elif ratio == "NM":
             net_income = get_line_item(income,"Net Income","Net Profit","Net Earnings","Net Revenue")
             total_revenue = get_line_item(income, "Total Revenue", "Total Income", "Total Profit")
             if net_income is not None and total_revenue is not None:
-                ratio_values[ratio] = (net_income/total_revenue).iloc[0]
+                ratio_values[ratio_display[ratio]] = f"{(net_income/total_revenue).iloc[0] * 100:.2f}%"
             else:
-                ratio_values[ratio] = None
+                ratio_values[ratio_display[ratio]] = None
         elif ratio == "ROE":
             net_income = get_line_item(income,"Net Income","Net Profit","Net Earnings","Net Revenue")
             total_sh_equity = get_line_item(balance,"Total Shareholder Equity","Total Shareholders Equity","Total Shareholder's Equity","Stockholders Equity")
             if net_income is not None and total_sh_equity is not None:
-                ratio_values[ratio] = (net_income/total_sh_equity).iloc[0]
+                ratio_values[ratio_display[ratio]] = f"{(net_income/total_sh_equity).iloc[0] *100:.2f}%"
             else:
-                ratio_values[ratio] = None
+                ratio_values[ratio_display[ratio]] = None
         elif ratio == "ROA":
             net_income = get_line_item(income,"Net Income","Net Profit","Net Earnings","Net Revenue")
             total_assets = get_line_item(balance,"Total Assets")
             if net_income is not None and total_assets is not None:
-                ratio_values[ratio] = (net_income/total_assets).iloc[0]
+                ratio_values[ratio_display[ratio]] = f"{(net_income/total_assets).iloc[0] * 100:.2f}%"
             else:
-                ratio_values[ratio] = None
+                ratio_values[ratio_display[ratio]] = None
         elif ratio == "DE":
             total_debt = get_line_item(balance,"Total Debt", )
             total_sh_equity = get_line_item(balance,"Total Shareholder Equity","Total Shareholders Equity","Total Shareholder's Equity", "Stockholders Equity")
             if total_debt is not None and total_sh_equity is not None:
-                ratio_values[ratio] = (total_debt/total_sh_equity).iloc[0]
+                ratio_values[ratio_display[ratio]] = (total_debt/total_sh_equity).iloc[0]
             else:
-                ratio_values[ratio] = None
+                ratio_values[ratio_display[ratio]] = None
         elif ratio == 'IC':
-            EBIT = get_line_item(income,"EBIT","Earnings Before Interest and Tax","Earnings Before Interest & Tax","Earnings Before Interest, Tax","Earnings Before Interest Tax")
-            interest_expense = get_line_item(income, "Interest Expense")
-            if EBIT is not None and interest_expense is not None:
-                ratio_values[ratio] = (EBIT/interest_expense).iloc[0]
+            if is_financial:
+                ratio_values[ratio_display[ratio]] = "N/A"
             else:
-                ratio_values[ratio] = None
+                EBIT = get_line_item(income,"EBIT","Earnings Before Interest and Tax","Earnings Before Interest & Tax","Earnings Before Interest, Tax","Earnings Before Interest Tax")
+                interest_expense = get_line_item(income, "Interest Expense")
+                if EBIT is not None and interest_expense is not None:
+                    ratio_values[ratio_display[ratio]] = (EBIT/interest_expense).iloc[0]
+                else:
+                    ratio_values[ratio_display[ratio]] = None
         elif ratio == "PE":
-             ratio_values[ratio]= item.info.get("trailingPE")
+             ratio_values[ratio_display[ratio]]= item.info.get("trailingPE")
         elif ratio == "PB":
-            ratio_values[ratio] = item.info.get("priceToBook")
+            ratio_values[ratio_display[ratio]] = item.info.get("priceToBook")
         elif ratio == "EVEB":
-            ratio_values[ratio] = item.info.get("enterpriseToEbitda")
+            ratio_values[ratio_display[ratio]] = item.info.get("enterpriseToEbitda")
         elif ratio == "DY":
-            ratio_values[ratio] = item.info.get("dividendYield")
+            ratio_values[ratio_display[ratio]] = item.info.get("dividendYield")
         elif ratio == "AT":
             total_revenue = get_line_item(income, "Total Revenue" ,"Total Income" , "Total Profit")
             total_assets = get_line_item(balance,"Total Assets")
             if total_assets is not None and total_revenue is not None:
-                ratio_values[ratio] = (total_revenue/total_assets).iloc[0]
+                ratio_values[ratio_display[ratio]] = (total_revenue/total_assets).iloc[0]
             else:
-                ratio_values[ratio] = None
+                ratio_values[ratio_display[ratio]] = None
         elif ratio == "IT":
-            COGS = get_line_item(income, "COGS","Cogs","Cogas","COGAS","Cost of Goods Sold","Cost of Revenue")
-            inventory = get_line_item(balance,"Inventory")
-            if inventory is not None and COGS is not None:
-                avr_inventory = (inventory + inventory.shift(-1)) /2
-                ratio_values[ratio] = (COGS/avr_inventory).iloc[0]
+            if is_financial:
+                ratio_values[ratio_display[ratio]] = "N/A"
             else:
-                ratio_values[ratio] = None
+                COGS = get_line_item(income, "COGS","Cogs","Cogas","COGAS","Cost of Goods Sold","Cost of Revenue")
+                inventory = get_line_item(balance,"Inventory")
+                if inventory is not None and COGS is not None:
+                    avr_inventory = (inventory + inventory.shift(-1)) /2
+                    ratio_values[ratio_display[ratio]] = (COGS/avr_inventory).iloc[0]
+                else:
+                    ratio_values[ratio_display[ratio]] = None
     compare[ticker] = pd.Series(ratio_values)
 
 pd_full = pd.concat(compare, axis=1, sort = False)
 print(pd_full)
-
+tickers_string = "_".join(Tickers.keys()).replace('.','-')
+pd_full.to_excel(f"Stock Screener Results_{tickers_string}_{infoType}.xlsx")
 #endregion
 #endregion
