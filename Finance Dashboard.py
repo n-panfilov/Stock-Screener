@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from random import choice
 import openpyxl
+import os
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -116,6 +117,10 @@ else:
 
 #region Main body of result creation
 #region building the dataFrame/finding the desired ratios
+tickers_string = "_".join(Tickers.keys()).replace('.','-')
+date_str = datetime.now().strftime("%Y-%m-%d")
+downloads = os.path.join(os.path.expanduser("~"),"Downloads")
+
 compare = {}
 if infoType != 'RATIOS':
     statement_name = statement_map[infoType]
@@ -128,6 +133,8 @@ if infoType != 'RATIOS':
 
     pd_full = pd.concat(compare, axis =1, sort = False)
     print(pd_full)
+    pd_full.to_excel(os.path.join(downloads, f"Stock Screener Results_{tickers_string}_{infoType}_{date_str}.xlsx"))
+
     exit()
 else:
     print("\nRatios:")
@@ -252,7 +259,7 @@ for ticker,item in Tickers.items():
 
 pd_full = pd.concat(compare, axis=1, sort = False)
 print(pd_full)
-tickers_string = "_".join(Tickers.keys()).replace('.','-')
-pd_full.to_excel(f"Stock Screener Results_{tickers_string}_{infoType}.xlsx")
+
+pd_full.to_excel(os.path.join(downloads,f"Stock Screener Results_{tickers_string}_{infoType}_{date_str}.xlsx"))
 #endregion
 #endregion
