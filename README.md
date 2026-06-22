@@ -1,35 +1,35 @@
-# Stock-Screener
-A Python stock screener using Yahoo Finance
+# Financial Analysis Dashboard
 
-# Stock Financial Dashboard
+A Python tool for pulling and analyzing public company financial data using the Yahoo Finance API.
 
-A command-line tool for pulling and comparing financial statements 
-and ratios across multiple public companies using live market data.
+## Features
 
-## What it does
+- Pull Income Statements, Balance Sheets, and Cash Flow Statements for multiple companies side by side
+- Calculate and compare 13 key financial ratios across companies
+- Automatic sector detection — flags N/A for ratios not applicable to financial sector companies
+- Filter by year or year range
+- Exports results to a timestamped Excel file
 
-- Accepts multiple stock tickers and validates them against live data
-- Pulls income statements, balance sheets, or cash flow statements
-- Filters by a custom year or year range
-- Displays a side-by-side comparison across all entered companies
-- Ratio analysis module in progress (profitability, leverage, 
-  valuation, efficiency)
+## Ratios Supported
 
-## Built with
+**Profitability:** Gross Margin, Operating Margin, Net Margin, ROE, ROA
 
-- Python
-- yfinance
-- pandas
+**Leverage:** Debt/Equity, Interest Coverage
 
-## How to run
+**Valuation:** P/E, P/B, EV/EBITDA, Dividend Yield
 
-Install dependencies:
-pip install yfinance pandas
+**Efficiency:** Asset Turnover, Inventory Turnover
 
-Then run:
-python "Finance Dashboard.py"
+## Setup
 
-## Status
+```bash
+pip install yfinance pandas openpyxl
+```
 
-Core financial statement comparison is complete. 
-Ratio calculations are currently being added.
+## Usage
+
+Run the script and follow the prompts to enter ticker symbols, select output type, and choose a year range. Results print to the terminal and export to your Downloads folder.
+
+## Tech Stack
+
+Python, yfinance, pandas, openpyxl
